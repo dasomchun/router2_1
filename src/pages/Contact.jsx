@@ -1,25 +1,48 @@
 import React from "react";
-import "./Contact.css";
 import { useState } from "react";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import "./Contact.css";
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      // Firebase Firestore에 데이터 저장
+      await addDoc(collection(db, "Contacts"), {
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+        timestamp: serverTimestamp(),
+      });
+
+      setSubmitStatus("success");
+      alert("Thank you for your message! Your message has been saved.");
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      console.error("Error saving contact:", error);
+      setSubmitStatus("error");
+      alert("Failed to send message. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-      // <input name="email" /> formData.email업데이트 하면
-      //...formData, 기존상태를 복사
-      //e.target.value -> 키보드로 입력한값
     });
-  };
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert("메세지가 전송되었습니다.!(데모)");
-    setFormData({ name: "", email: "", message: "" });
   };
 
   return (
@@ -81,9 +104,23 @@ export default function Contact() {
             ></textarea>
           </div>
 
-          <button type="submit" className="submit-button">
-            전송하기
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Sending..." : "Send Message"}
           </button>
+          {submitStatus === "success" && (
+            <p style={{ color: "#10b981", textAlign: "center" }}>
+              Message sent successfully!
+            </p>
+          )}
+          {submitStatus === "error" && (
+            <p style={{ color: "#ef4444", textAlign: "center" }}>
+              Failed to send message. Please try again.
+            </p>
+          )}
         </form>
       </div>
     </div>
